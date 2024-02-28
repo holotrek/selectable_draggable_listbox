@@ -1,7 +1,7 @@
 library selectable_draggable_listbox;
 
-export './models/exports.dart';
-export './widgets/exports.dart';
+export 'src/models/exports.dart';
+export 'src/widgets/exports.dart';
 
 /// A Calculator.
 class Calculator {

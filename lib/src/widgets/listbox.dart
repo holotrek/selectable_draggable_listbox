@@ -4,24 +4,23 @@ import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:selectable_draggable_listbox/models/list_item.dart';
-import 'package:selectable_draggable_listbox/widgets/abstract_listbox_item.dart';
+import 'package:selectable_draggable_listbox/src/models/list_item.dart';
 
 class ListBox<T extends Object> extends StatefulWidget {
   ListBox({
     super.key,
     required this.itemTemplate,
     this.dragTemplate,
-    required this.results,
+    required this.items,
     this.onReorder,
     this.onSelect,
   });
 
-  final AbstractListboxItem<T> Function(int index, ListItem<T> item,
+  final Widget Function(BuildContext context, int index, ListItem<T> item,
       void Function(ListItem<T> item)? onSelect) itemTemplate;
-  final AbstractListboxItem<T> Function(int index, ListItem<T> item)?
+  final Widget Function(BuildContext context, int index, ListItem<T> item)?
       dragTemplate;
-  final List<ListItem<T>> results;
+  final List<ListItem<T>> items;
   final void Function(int oldIndex, int newIndex)? onReorder;
   final void Function(List<ListItem<T>> itemsSelected)? onSelect;
   final controller = ScrollController(keepScrollOffset: true);
@@ -101,19 +100,19 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
     }
 
     final existingItemsSelected =
-        widget.results.where((e) => e.isSelected).toList();
+        widget.items.where((e) => e.isSelected).toList();
     List<ListItem<T>> itemsSelected =
         _isCtrlOrCommandDown ? existingItemsSelected : [];
 
-    int itemIndex = widget.results.indexOf(item);
+    int itemIndex = widget.items.indexOf(item);
     bool shiftSelectUsed = false;
     if (_isShiftDown) {
       if (_lastIndexSelected != null &&
-          widget.results[_lastIndexSelected!].isSelected &&
+          widget.items[_lastIndexSelected!].isSelected &&
           itemIndex != _lastIndexSelected) {
         int firstIndex = math.min(itemIndex, _lastIndexSelected!);
         int lastIndex = math.max(itemIndex, _lastIndexSelected!);
-        itemsSelected.addAll(widget.results.slice(firstIndex, lastIndex + 1));
+        itemsSelected.addAll(widget.items.slice(firstIndex, lastIndex + 1));
         shiftSelectUsed = true;
       }
     }
@@ -157,22 +156,22 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
             child: Builder(
               builder: (context) {
                 final selectedItems =
-                    widget.results.where((i) => i.isSelected).toList();
-                itemBuilder(BuildContext context, int idx) =>
-                    widget.itemTemplate(idx, widget.results[idx], onSelect);
+                    widget.items.where((i) => i.isSelected).toList();
+                itemBuilder(BuildContext context, int idx) => widget
+                    .itemTemplate(context, idx, widget.items[idx], onSelect);
 
                 Widget listView;
                 if (widget.onReorder == null) {
                   listView = ListView.builder(
                     controller: widget.controller,
-                    itemCount: widget.results.length,
+                    itemCount: widget.items.length,
                     itemBuilder: itemBuilder,
                   );
                 } else {
                   listView = ReorderableListView.builder(
                     onReorder: widget.onReorder!,
                     scrollController: widget.controller,
-                    itemCount: widget.results.length,
+                    itemCount: widget.items.length,
                     itemBuilder: itemBuilder,
                   );
                 }
@@ -181,7 +180,7 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
                   return listView;
                 } else {
                   dragItemBuilder(BuildContext context, int idx) =>
-                      widget.dragTemplate!(idx, selectedItems[idx]);
+                      widget.dragTemplate!(context, idx, selectedItems[idx]);
 
                   return Draggable<Iterable<T>>(
                     data: selectedItems.map((i) => i.data).toList(),

@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:selectable_draggable_listbox/widgets/abstract_listbox_item.dart';
+import 'package:selectable_draggable_listbox/src/models/list_item.dart';
 
-class TemplatedListboxItem<T> extends AbstractListboxItem<T> {
-  const TemplatedListboxItem({
+abstract class AbstractListboxItem<T> extends StatefulWidget {
+  const AbstractListboxItem({
     super.key,
-    required super.item,
-    required super.childTemplate,
-    super.onSelect,
-    super.isDragging,
-    super.customDecoration,
+    required this.item,
+    required this.childTemplate,
+    this.onSelect,
+    this.isDragging = false,
+    this.customDecoration,
   });
 
+  final ListItem<T> item;
+  final Widget Function(BuildContext context, ListItem<T> item) childTemplate;
+  final void Function(ListItem<T> item)? onSelect;
+  final bool isDragging;
+  final BoxDecoration? customDecoration;
+
   @override
-  State<TemplatedListboxItem<T>> createState() =>
-      _TemplatedListboxItemState<T>();
+  State<AbstractListboxItem<T>> createState() => _AbstractListboxItemState<T>();
 }
 
-class _TemplatedListboxItemState<T> extends State<TemplatedListboxItem<T>> {
+class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
   bool _isMouseDown = false;
 
   void _onTapDown(TapDownDetails details) {
@@ -60,7 +65,7 @@ class _TemplatedListboxItemState<T> extends State<TemplatedListboxItem<T>> {
               ),
             ),
         margin: const EdgeInsets.all(2),
-        child: widget.childTemplate(widget.item),
+        child: widget.childTemplate(context, widget.item),
       ),
     );
   }

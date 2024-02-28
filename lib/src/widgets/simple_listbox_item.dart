@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
+import 'package:selectable_draggable_listbox/src/widgets/abstract_listbox_item.dart';
 
-class ListboxItem<T> extends TemplatedListboxItem<T> {
-  ListboxItem({
+class SimpleListboxItem<T> extends AbstractListboxItem<T> {
+  SimpleListboxItem({
     super.key,
     required super.item,
     required this.label,
     super.onSelect,
     super.isDragging,
     super.customDecoration,
-    required this.textStyle,
+    this.textStyle,
   }) : super(
-          childTemplate: (item) => Padding(
+          childTemplate: (context, item) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Text(
                   label,
-                  style: textStyle,
+                  style: textStyle ?? Theme.of(context).textTheme.labelLarge,
                 ),
               ],
             ),
