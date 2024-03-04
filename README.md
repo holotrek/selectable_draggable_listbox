@@ -19,7 +19,7 @@ Listbox with multiselect, drag & drop between lists, and reorder built in.
   - Drag items from/to different lists
   - Each list may independently be a draggable, drop target, or both
 
-[![Feature Demo](doc/iamges/feature_demo.png "Feature Demo")](./doc/images/feature_demo.gif)
+[![Feature Demo](https://github.com/holotrek/selectable_draggable_listbox/blob/main/doc/images/feature_demo.gif?raw=true "Feature Demo")](./doc/images/feature_demo.gif)
 
 ## Getting started
 
@@ -87,6 +87,6 @@ For more info on additional features like Drag & Drop and Customizable Templates
 
 ## Support
 
-You can support me by buying me a coffee <a href=""><img src="doc/images/bmc-button.png" alt="Buy me a coffee" width="100" /></a>
+You can support me by buying me a coffee <a href=""><img src="https://github.com/holotrek/selectable_draggable_listbox/blob/main/doc/images/bmc-button.png?raw=true" alt="Buy me a coffee" width="100" /></a>
 
 And also don't forget to star this package on GitHub <a href="https://github.com/holotrek/selectable_draggable_listbox"><img src="https://img.shields.io/github/stars/holotrek/selectable_draggable_listbox?logo=github&style=flat-square"></a>
