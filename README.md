@@ -1,4 +1,4 @@
-![Pub](https://img.shields.io/pub/v/selectable_draggable_listbox)
+[![Pub](https://img.shields.io/pub/v/selectable_draggable_listbox)](https://pub.dev/packages/selectable_draggable_listbox)
 
 # selectable_draggable_listbox
 
