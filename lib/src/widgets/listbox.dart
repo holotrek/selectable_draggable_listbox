@@ -268,10 +268,10 @@ class _ListboxState<T> extends State<Listbox<T>> {
                 listView = ReorderableListView.builder(
                   onReorder: (int oldIndex, int newIndex) {
                     if (newIndex > oldIndex) {
-                      /// Reorderable listview incorrectly adds 1 to newindex
-                      /// when moving such that index increases. See
-                      /// https://github.com/flutter/flutter/issues/24786
-                      /// for more info.
+                      // Reorderable listview incorrectly adds 1 to newindex
+                      // when moving such that index increases. See
+                      // https://github.com/flutter/flutter/issues/24786
+                      // for more info.
                       newIndex--;
                     }
                     widget.onReorder!(oldIndex, newIndex);
@@ -319,7 +319,11 @@ class _ListboxState<T> extends State<Listbox<T>> {
           var offset = localOffset(details.offset);
           var dropIndex = getDropIndex(offset, originalResultCount);
           debugPrint('Dropping items into ${widget.key} at index $_dropIndex');
-          widget.onDrop!(details.data, dropIndex);
+          var droppedItems = details.data.toList();
+          for (var element in droppedItems) {
+            element.isSelected = false;
+          }
+          widget.onDrop!(droppedItems, dropIndex);
           setState(() {
             _isDraggedOver = false;
             _dropIndex = -1;
