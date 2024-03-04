@@ -124,7 +124,33 @@ class _ListboxState<T> extends State<Listbox<T>> {
     if (!_focused) {
       debugPrint(
           '[selectable_draggable_listbox] Listbox (key:${widget.key}) requesting focus.');
+
       _node.requestFocus();
+      final keysPressed = ServicesBinding.instance.keyboard.logicalKeysPressed;
+
+      final isShiftDown = keysPressed.intersection({
+        LogicalKeyboardKey.shiftLeft,
+        LogicalKeyboardKey.shiftRight,
+      }).isNotEmpty;
+
+      final isCtrlOrCommandDown = Platform.isMacOS
+          ? keysPressed.intersection({
+              LogicalKeyboardKey.metaLeft,
+              LogicalKeyboardKey.metaRight,
+            }).isNotEmpty
+          : keysPressed.intersection({
+              LogicalKeyboardKey.controlLeft,
+              LogicalKeyboardKey.controlRight,
+            }).isNotEmpty;
+
+      debugPrint(
+          '[selectable_draggable_listbox] Shift is currently ${isShiftDown ? 'down' : 'up'}.');
+      debugPrint(
+          '[selectable_draggable_listbox] Ctrl/Cmd is currently ${isCtrlOrCommandDown ? 'down' : 'up'}.');
+      setState(() {
+        _isShiftDown = isShiftDown;
+        _isCtrlOrCommandDown = isCtrlOrCommandDown;
+      });
     }
   }
 
