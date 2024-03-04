@@ -6,30 +6,59 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:selectable_draggable_listbox/src/models/list_item.dart';
 
-class ListBox<T extends Object> extends StatefulWidget {
+class ListBox<T> extends StatefulWidget {
+  /// Builds a lisbox that is a reorderable, (multi)selectable, listview of
+  /// widgets defined by the itemTemplate.
   ListBox({
     super.key,
     required this.itemTemplate,
     this.dragTemplate,
     required this.items,
+    this.shrinkWrap = false,
+    this.disableMultiSelect = false,
     this.onReorder,
     this.onSelect,
+    this.enableDebug = false,
   });
 
+  /// Builds the Listbox widget that should show in the list
   final Widget Function(BuildContext context, int index, ListItem<T> item,
       void Function(ListItem<T> item)? onSelect) itemTemplate;
+
+  /// Builds the Listbox widget that should show when dragging the item from the
+  /// list
   final Widget Function(BuildContext context, int index, ListItem<T> item)?
       dragTemplate;
+
+  /// Items to bind to the Listbox
   final List<ListItem<T>> items;
+
+  /// Whether to shrinkWrap the scroll view. See this documentation for more
+  /// info: https://api.flutter.dev/flutter/widgets/ScrollView/shrinkWrap.html
+  final bool shrinkWrap;
+
+  /// Whether to allow multiple selections in a series (using Shift) or
+  /// individually selected (using Ctrl or Command on MacOS)
+  final bool disableMultiSelect;
+
+  /// A callback used by the Listbox to report that a list item has been dragged
+  /// to a new location in the list.
   final void Function(int oldIndex, int newIndex)? onReorder;
+
+  /// A callback used by the Listbox to report that one or more list items have
+  /// been selected
   final void Function(List<ListItem<T>> itemsSelected)? onSelect;
+
+  /// Whether to show debug info about this widget
+  final bool enableDebug;
+
   final controller = ScrollController(keepScrollOffset: true);
 
   @override
   State<ListBox<T>> createState() => _ListBoxState<T>();
 }
 
-class _ListBoxState<T extends Object> extends State<ListBox<T>> {
+class _ListBoxState<T> extends State<ListBox<T>> {
   int? _lastIndexSelected;
   bool _isCtrlOrCommandDown = false;
   bool _isShiftDown = false;
@@ -40,9 +69,17 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
   @override
   void initState() {
     super.initState();
-    _node = FocusNode(debugLabel: 'Listbox');
+    _node = FocusNode(debugLabel: 'Listbox (key:${widget.key})');
     _node.addListener(_handleFocusChange);
     _nodeAttachment = _node.attach(context, onKeyEvent: _handleKeyPress);
+  }
+
+  @override
+  void dispose() {
+    _node.removeListener(_handleFocusChange);
+    // The attachment will automatically be detached in dispose().
+    _node.dispose();
+    super.dispose();
   }
 
   void _handleFocusChange() {
@@ -56,10 +93,9 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
   KeyEventResult _handleKeyPress(FocusNode node, KeyEvent event) {
     bool isKeyUp = event is KeyUpEvent;
     debugPrint(
-        'Focus node ${node.debugLabel} got key event: ${event.logicalKey}');
+        '[selectable_draggable_listbox] Focus node ${node.debugLabel} got key ${isKeyUp ? 'up' : 'down'} event: ${event.logicalKey}');
     if (event.logicalKey == LogicalKeyboardKey.shiftLeft ||
         event.logicalKey == LogicalKeyboardKey.shiftRight) {
-      debugPrint('Shift toggled.');
       setState(() {
         _isShiftDown = !isKeyUp;
       });
@@ -67,7 +103,6 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
     } else if (Platform.isMacOS) {
       if (event.logicalKey == LogicalKeyboardKey.metaLeft ||
           event.logicalKey == LogicalKeyboardKey.metaRight) {
-        debugPrint('Command toggled.');
         setState(() {
           _isCtrlOrCommandDown = !isKeyUp;
         });
@@ -76,7 +111,6 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
     } else {
       if (event.logicalKey == LogicalKeyboardKey.controlLeft ||
           event.logicalKey == LogicalKeyboardKey.controlRight) {
-        debugPrint('Control toggled.');
         setState(() {
           _isCtrlOrCommandDown = !isKeyUp;
         });
@@ -86,15 +120,17 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
     return KeyEventResult.ignored;
   }
 
-  @override
-  void dispose() {
-    _node.removeListener(_handleFocusChange);
-    // The attachment will automatically be detached in dispose().
-    _node.dispose();
-    super.dispose();
+  void _listClicked() {
+    if (!_focused) {
+      debugPrint(
+          '[selectable_draggable_listbox] Listbox (key:${widget.key}) requesting focus.');
+      _node.requestFocus();
+    }
   }
 
-  void onSelect(ListItem<T> item) {
+  void _onSelect(ListItem<T> item) {
+    _listClicked();
+
     if (widget.onSelect == null) {
       return;
     }
@@ -135,20 +171,17 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
     _nodeAttachment.reparent();
     final colors = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: () {
-        if (!_focused) {
-          _node.requestFocus();
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(),
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(color: colors.surface),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(color: colors.surface),
+        ],
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTapDown: (_) => _listClicked(),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Scrollbar(
@@ -158,7 +191,7 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
                 final selectedItems =
                     widget.items.where((i) => i.isSelected).toList();
                 itemBuilder(BuildContext context, int idx) => widget
-                    .itemTemplate(context, idx, widget.items[idx], onSelect);
+                    .itemTemplate(context, idx, widget.items[idx], _onSelect);
 
                 Widget listView;
                 if (widget.onReorder == null) {
@@ -166,13 +199,24 @@ class _ListBoxState<T extends Object> extends State<ListBox<T>> {
                     controller: widget.controller,
                     itemCount: widget.items.length,
                     itemBuilder: itemBuilder,
+                    shrinkWrap: widget.shrinkWrap,
                   );
                 } else {
                   listView = ReorderableListView.builder(
-                    onReorder: widget.onReorder!,
+                    onReorder: (int oldIndex, int newIndex) {
+                      if (newIndex > oldIndex) {
+                        /// Reorderable listview incorrectly adds 1 to newindex
+                        /// when moving such that index increases. See
+                        /// https://github.com/flutter/flutter/issues/24786
+                        /// for more info.
+                        newIndex--;
+                      }
+                      widget.onReorder!(oldIndex, newIndex);
+                    },
                     scrollController: widget.controller,
                     itemCount: widget.items.length,
                     itemBuilder: itemBuilder,
+                    shrinkWrap: widget.shrinkWrap,
                   );
                 }
 

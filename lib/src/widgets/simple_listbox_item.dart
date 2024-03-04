@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:selectable_draggable_listbox/src/widgets/abstract_listbox_item.dart';
 
 class SimpleListboxItem<T> extends AbstractListboxItem<T> {
+  /// A simple widget containing a Text element for a Listbox item template
   SimpleListboxItem({
     super.key,
     required super.item,
@@ -24,6 +25,9 @@ class SimpleListboxItem<T> extends AbstractListboxItem<T> {
           ),
         );
 
+  /// The text label to show for this item
   final String label;
+
+  /// Override the text style for this item
   final TextStyle? textStyle;
 }

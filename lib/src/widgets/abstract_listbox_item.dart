@@ -11,10 +11,19 @@ abstract class AbstractListboxItem<T> extends StatefulWidget {
     this.customDecoration,
   });
 
+  /// The data item bound to this Lisbox item
   final ListItem<T> item;
+
+  /// Builds the widget to display for this Listbox item
   final Widget Function(BuildContext context, ListItem<T> item) childTemplate;
+
+  /// A callback that indicates that the item has been selected (or deselected)
   final void Function(ListItem<T> item)? onSelect;
+
+  /// Indicates whether the item is currently being dragged
   final bool isDragging;
+
+  /// Override the decoration used to indicate that the item is selected/dragged
   final BoxDecoration? customDecoration;
 
   @override
@@ -44,6 +53,7 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
+      behavior: HitTestBehavior.translucent,
       onTapDown: widget.onSelect == null ? null : _onTapDown,
       onTapUp: widget.onSelect == null ? null : _onTapUp,
       child: Container(
