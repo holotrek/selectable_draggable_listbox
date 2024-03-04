@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:selectable_draggable_listbox/src/widgets/abstract_listbox_item.dart';
 
+/// A simple widget containing a Text element for a Listbox item template
 class SimpleListboxItem<T> extends AbstractListboxItem<T> {
   /// A simple widget containing a Text element for a Listbox item template
   SimpleListboxItem({

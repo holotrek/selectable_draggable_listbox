@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:selectable_draggable_listbox/src/models/list_item.dart';
 
+/// Builds a listbox that is a reorderable, (multi)selectable, listview of
+/// widgets defined by the itemTemplate.
 class Listbox<T> extends StatefulWidget {
   /// Builds a listbox that is a reorderable, (multi)selectable, listview of
   /// widgets defined by the itemTemplate.

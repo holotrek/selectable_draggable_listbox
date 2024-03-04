@@ -69,10 +69,9 @@ return Listbox(
   },
   onReorder: (oldIndex, newIndex) {
     // React to item reordered
-    final element = myList[oldIndex];
     setState(() {
-      myList.removeAt(oldIndex);
-      myList.insert(newIndex, element);
+      // Note: this is an extension provided by the package
+      myList.move(oldIndex, newIndex);
     });
   },
 );

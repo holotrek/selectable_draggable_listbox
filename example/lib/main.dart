@@ -119,10 +119,9 @@ class _GroceryListWidgetState extends State<GroceryListWidget> {
 
     void onReorder(int oldIndex, int newIndex) {
       debugPrint('Moving item from $oldIndex to $newIndex');
-      final element = _groceryList[oldIndex];
       setState(() {
-        _groceryList.removeAt(oldIndex);
-        _groceryList.insert(newIndex, element);
+        // Note: this is an extension provided by the package
+        _groceryList.move(oldIndex, newIndex);
       });
     }
 
