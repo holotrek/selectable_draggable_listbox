@@ -34,6 +34,7 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
   bool _isMouseDown = false;
 
   void _onTapDown(TapDownDetails details) {
+    debugPrint('Mouse down');
     if (widget.item.isSelected) {
       setState(() => _isMouseDown = true);
     } else {
@@ -42,6 +43,7 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
   }
 
   void _onTapUp(TapUpDetails details) {
+    debugPrint('Mouse up');
     if (_isMouseDown) {
       widget.onSelect!(widget.item);
     }
@@ -56,6 +58,12 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
       behavior: HitTestBehavior.translucent,
       onTapDown: widget.onSelect == null ? null : _onTapDown,
       onTapUp: widget.onSelect == null ? null : _onTapUp,
+      // onHorizontalDragStart: (_) => debugPrint('Drag Start'),
+      // onVerticalDragStart: (_) => debugPrint('Drag Start'),
+      // onHorizontalDragDown: (_) => debugPrint('Drag Down'),
+      // onVerticalDragDown: (_) => debugPrint('Drag Down'),
+      // onHorizontalDragUpdate: (_) => debugPrint('Dragging'),
+      // onVerticalDragUpdate: (_) => debugPrint('Dragging'),
       child: Container(
         decoration: widget.customDecoration ??
             BoxDecoration(

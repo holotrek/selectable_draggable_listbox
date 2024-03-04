@@ -289,6 +289,7 @@ class _ListboxState<T> extends State<Listbox<T>> {
                     widget.dragTemplate!(context, idx, selectedItems[idx]);
 
                 return Draggable<Iterable<ListItem<T>>>(
+                  hitTestBehavior: HitTestBehavior.translucent,
                   data: selectedItems,
                   dragAnchorStrategy: pointerDragAnchorStrategy,
                   feedback: SizedBox(
