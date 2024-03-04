@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
 
 void main() {
@@ -23,8 +24,15 @@ class MyApp extends StatelessWidget {
 
 class GroceryItem {
   final String name;
+  DateTime? lastBought;
+
+  String get lastBoughtShortDtTm => lastBought == null
+      ? ''
+      : DateFormat('MM/dd/yyyy kk:mm').format(lastBought!);
+
   GroceryItem({
     required this.name,
+    this.lastBought,
   });
 }
 
@@ -49,7 +57,10 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
+            // See this widget for: Multi-select, Reorder, and Drag From
             GroceryListWidget(),
+
+            // See this widget for: Single-select, Customized Template, and Drag To
             RecentListWidget(),
           ],
         ),
@@ -78,7 +89,15 @@ class _GroceryListWidgetState extends State<GroceryListWidget> {
 
   @override
   Widget build(BuildContext context) {
-    Widget makeItemTemplate(index, item, onSelect, isDragging) {
+    /// Make a simple listbox item
+    /// This demonstrates using the index to show a number prefix
+    /// Slightly different for the "drag template" that follows your mouse pointer - removes the number prefix
+    Widget makeItemTemplate(
+      int index,
+      ListItem<GroceryItem> item,
+      void Function(ListItem<GroceryItem>)? onSelect,
+      bool isDragging,
+    ) {
       return SimpleListboxItem(
         key: Key('$index'),
         item: item,
@@ -100,8 +119,8 @@ class _GroceryListWidgetState extends State<GroceryListWidget> {
 
     void onReorder(int oldIndex, int newIndex) {
       debugPrint('Moving item from $oldIndex to $newIndex');
+      final element = _groceryList[oldIndex];
       setState(() {
-        final element = _groceryList[oldIndex];
         _groceryList.removeAt(oldIndex);
         _groceryList.insert(newIndex, element);
       });
@@ -117,11 +136,12 @@ class _GroceryListWidgetState extends State<GroceryListWidget> {
               'Grocery List',
               style: Theme.of(context).textTheme.displaySmall,
             ),
-            const Text('Features: Multiselect, Reorder, Drag From'),
+            const Text('Features: Multi-select, Reorder, Drag From'),
             Expanded(
               child: Builder(
                 builder: (context) {
                   return Listbox(
+                    // Key is only needed if you want to identify which list you're interacting with in debug:
                     key: const Key('GroceryList'),
                     items: _groceryList,
                     onSelect: onSelect,
@@ -130,6 +150,7 @@ class _GroceryListWidgetState extends State<GroceryListWidget> {
                         makeItemTemplate(index, item, onSelect, false),
                     dragTemplate: (context, index, item) =>
                         makeItemTemplate(index, item, null, true),
+                    // Show info in console about how the list is being interacted with:
                     enableDebug: true,
                   );
                 },
@@ -153,17 +174,46 @@ class RecentListWidget extends StatefulWidget {
 
 class _RecentListWidgetState extends State<RecentListWidget> {
   final _recentList = [
-    GroceryItem(name: 'Apples'),
-    GroceryItem(name: 'Bread'),
+    GroceryItem(
+      name: 'Apples',
+      lastBought: DateTime(2024, 3, 3, 13, 22, 33),
+    ),
+    GroceryItem(
+      name: 'Bread',
+      lastBought: DateTime(2024, 3, 4, 10, 14, 12),
+    )
   ].forListbox().toList();
 
   @override
   Widget build(BuildContext context) {
-    Widget makeItemTemplate(index, item, label, onSelect) {
-      return SimpleListboxItem(
+    /// Make a more complex listbox item
+    /// This demonstrates using the childTemplate to show a row with a badge
+    /// indicating the date the item was dragged to this list
+    Widget makeItemTemplate(
+      int index,
+      ListItem<GroceryItem> item,
+      String label,
+      void Function(ListItem<GroceryItem>)? onSelect,
+      bool isDragPlaceholder,
+    ) {
+      return TemplatedListboxItem(
         key: Key('$index'),
         item: item,
-        label: label,
+        childTemplate: (context, item) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(label),
+                if (!isDragPlaceholder)
+                  Badge(
+                    label: Text(item.data.lastBoughtShortDtTm),
+                  ),
+              ],
+            ),
+          );
+        },
         onSelect: onSelect,
       );
     }
@@ -188,7 +238,8 @@ class _RecentListWidgetState extends State<RecentListWidget> {
       final existingNames = _recentList.map((i) => i.data.name);
       final itemsToInsert = itemsDropped
           .where((i) => !existingNames.contains(i.data.name))
-          .map((i) => ListItem(GroceryItem(name: i.data.name)))
+          .map((i) => ListItem(
+              GroceryItem(name: i.data.name, lastBought: DateTime.now())))
           .toList();
       _recentList.insertAll(index, itemsToInsert);
     }
@@ -203,28 +254,35 @@ class _RecentListWidgetState extends State<RecentListWidget> {
               'Recently Bought',
               style: Theme.of(context).textTheme.displaySmall,
             ),
-            const Text('Features: Single Select, Drag To'),
+            const Text('Features: Single-select, Customized Template, Drag To'),
             Expanded(
               child: Builder(
                 builder: (context) {
                   return Listbox(
+                    // Key is only needed if you want to identify which list you're interacting with in debug:
                     key: const Key('RecentList'),
                     items: _recentList,
                     onSelect: onSelect,
                     onDrop: onDrop,
                     itemTemplate: (context, index, item, onSelect) =>
-                        makeItemTemplate(index, item, item.data.name, onSelect),
+                        makeItemTemplate(
+                            index, item, item.data.name, onSelect, false),
                     dropPlaceholderTemplate:
                         (context, index, item, itemsToBeDropped) {
                       var itemsLength = itemsToBeDropped.length;
+
+                      // Here we're going to adjust the label that shows in the new list's placeholder,
+                      // depending on whether we are dragging 1 item (just show name) or more (count of new items)
                       var label = itemsLength > 1
                           ? '$itemsLength new items...'
                           : itemsLength > 0
                               ? itemsToBeDropped.first.data.name
                               : '';
-                      return makeItemTemplate(index, item, label, null);
+                      return makeItemTemplate(index, item, label, null, true);
                     },
+                    // Can just turn off multiselect if not needed:
                     disableMultiSelect: true,
+                    // Show info in console about how the list is being interacted with:
                     enableDebug: true,
                   );
                 },
