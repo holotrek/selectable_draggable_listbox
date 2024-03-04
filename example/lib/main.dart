@@ -48,12 +48,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<ListItem<GroceryItem>> _recentList = [];
 
-  ListBox<GroceryItem> _makeGroceryListbox(
+  Listbox<GroceryItem> _makeGroceryListbox(
       List<ListItem<GroceryItem>> list, String name) {
-    return ListBox(
+    Widget makeItemTemplate(context, index, item, onSelect, isDragging) {
+      return SimpleListboxItem(
+        key: Key('$index'),
+        item: item,
+        label: isDragging ? item.data.name : '${index + 1}. ${item.data.name}',
+        onSelect: onSelect,
+        isDragging: isDragging,
+      );
+    }
+
+    return Listbox(
       key: Key(name),
       items: list,
-      shrinkWrap: true,
       onSelect: (itemsSelected) {
         debugPrint(
             'Selected: ${itemsSelected.map((e) => e.data.name).join(',')}');
@@ -71,14 +80,10 @@ class _MyHomePageState extends State<MyHomePage> {
           list.insert(newIndex, element);
         });
       },
-      itemTemplate: (context, index, item, onSelect) {
-        return SimpleListboxItem(
-          key: Key('$index'),
-          item: item,
-          label: '${index + 1}. ${item.data.name}',
-          onSelect: onSelect,
-        );
-      },
+      itemTemplate: (context, index, item, onSelect) =>
+          makeItemTemplate(context, index, item, onSelect, false),
+      dragTemplate: (context, index, item) =>
+          makeItemTemplate(context, index, item, null, true),
       enableDebug: true,
     );
   }
@@ -103,7 +108,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     const Text(
                       'Grocery List',
                     ),
-                    _makeGroceryListbox(_groceryList, 'GroceryList'),
+                    Expanded(
+                      child: _makeGroceryListbox(_groceryList, 'GroceryList'),
+                    ),
                   ],
                 ),
               ),
@@ -117,7 +124,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     const Text(
                       'Recently Bought Items',
                     ),
-                    _makeGroceryListbox(_recentList, 'RecentItems'),
+                    Expanded(
+                      child: _makeGroceryListbox(_recentList, 'RecentItems'),
+                    ),
                   ],
                 ),
               ),

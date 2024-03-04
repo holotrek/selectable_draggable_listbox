@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:selectable_draggable_listbox/src/models/list_item.dart';
 
-class ListBox<T> extends StatefulWidget {
-  /// Builds a lisbox that is a reorderable, (multi)selectable, listview of
+class Listbox<T> extends StatefulWidget {
+  /// Builds a listbox that is a reorderable, (multi)selectable, listview of
   /// widgets defined by the itemTemplate.
-  ListBox({
+  Listbox({
     super.key,
     required this.itemTemplate,
     this.dragTemplate,
@@ -21,16 +21,16 @@ class ListBox<T> extends StatefulWidget {
     this.enableDebug = false,
   });
 
-  /// Builds the Listbox widget that should show in the list
+  /// Builds the widget that should show in the list for each item.
   final Widget Function(BuildContext context, int index, ListItem<T> item,
       void Function(ListItem<T> item)? onSelect) itemTemplate;
 
-  /// Builds the Listbox widget that should show when dragging the item from the
-  /// list
+  /// Builds the widget that should show when dragging the item from the list.
+  /// Set to null to disable dragging from this Listbox.
   final Widget Function(BuildContext context, int index, ListItem<T> item)?
       dragTemplate;
 
-  /// Items to bind to the Listbox
+  /// Items to bind to the Listbox.
   final List<ListItem<T>> items;
 
   /// Whether to shrinkWrap the scroll view. See this documentation for more
@@ -38,7 +38,7 @@ class ListBox<T> extends StatefulWidget {
   final bool shrinkWrap;
 
   /// Whether to allow multiple selections in a series (using Shift) or
-  /// individually selected (using Ctrl or Command on MacOS)
+  /// individually selected (using Ctrl or Command on MacOS).
   final bool disableMultiSelect;
 
   /// A callback used by the Listbox to report that a list item has been dragged
@@ -46,7 +46,7 @@ class ListBox<T> extends StatefulWidget {
   final void Function(int oldIndex, int newIndex)? onReorder;
 
   /// A callback used by the Listbox to report that one or more list items have
-  /// been selected
+  /// been selected. Set to null to disable selections.
   final void Function(List<ListItem<T>> itemsSelected)? onSelect;
 
   /// Whether to show debug info about this widget
@@ -55,10 +55,10 @@ class ListBox<T> extends StatefulWidget {
   final controller = ScrollController(keepScrollOffset: true);
 
   @override
-  State<ListBox<T>> createState() => _ListBoxState<T>();
+  State<Listbox<T>> createState() => _ListboxState<T>();
 }
 
-class _ListBoxState<T> extends State<ListBox<T>> {
+class _ListboxState<T> extends State<Listbox<T>> {
   int? _lastIndexSelected;
   bool _isCtrlOrCommandDown = false;
   bool _isShiftDown = false;
@@ -138,11 +138,13 @@ class _ListBoxState<T> extends State<ListBox<T>> {
     final existingItemsSelected =
         widget.items.where((e) => e.isSelected).toList();
     List<ListItem<T>> itemsSelected =
-        _isCtrlOrCommandDown ? existingItemsSelected : [];
+        _isCtrlOrCommandDown && !widget.disableMultiSelect
+            ? existingItemsSelected
+            : [];
 
     int itemIndex = widget.items.indexOf(item);
     bool shiftSelectUsed = false;
-    if (_isShiftDown) {
+    if (_isShiftDown && !widget.disableMultiSelect) {
       if (_lastIndexSelected != null &&
           widget.items[_lastIndexSelected!].isSelected &&
           itemIndex != _lastIndexSelected) {
