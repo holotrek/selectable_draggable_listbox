@@ -51,49 +51,6 @@ class _MyHomePageState extends State<MyHomePage> {
     GroceryItem(name: 'Bread'),
   ].forListbox().toList();
 
-  Listbox<GroceryItem> _makeGroceryListbox(List<ListItem<GroceryItem>> list,
-      String name, bool disableMultiSelect, bool disableReorder) {
-    Widget makeItemTemplate(context, index, item, onSelect, isDragging) {
-      return SimpleListboxItem(
-        key: Key('$index'),
-        item: item,
-        label: isDragging ? item.data.name : '${index + 1}. ${item.data.name}',
-        onSelect: onSelect,
-        isDragging: isDragging,
-      );
-    }
-
-    return Listbox(
-      key: Key(name),
-      items: list,
-      onSelect: (itemsSelected) {
-        debugPrint(
-            'Selected: ${itemsSelected.map((e) => e.data.name).join(',')}');
-        setState(() {
-          for (var item in list) {
-            item.isSelected = itemsSelected.contains(item);
-          }
-        });
-      },
-      onReorder: disableReorder
-          ? null
-          : (oldIndex, newIndex) {
-              debugPrint('Moving item from $oldIndex to $newIndex');
-              setState(() {
-                final element = list[oldIndex];
-                list.removeAt(oldIndex);
-                list.insert(newIndex, element);
-              });
-            },
-      itemTemplate: (context, index, item, onSelect) =>
-          makeItemTemplate(context, index, item, onSelect, false),
-      dragTemplate: (context, index, item) =>
-          makeItemTemplate(context, index, item, null, true),
-      disableMultiSelect: disableMultiSelect,
-      enableDebug: true,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,13 +153,32 @@ class _MyHomePageState extends State<MyHomePage> {
                                 }
                               });
                             },
-                            itemTemplate: (context, index, item, onSelect) =>
-                                SimpleListboxItem(
-                              key: Key('$index'),
-                              item: item,
-                              label: item.data.name,
-                              onSelect: onSelect,
-                            ),
+                            itemTemplate: (context, index, item, onSelect) {
+                              return SimpleListboxItem(
+                                key: Key('$index'),
+                                item: item,
+                                label: item.data.name,
+                                onSelect: onSelect,
+                              );
+                            },
+                            onDrop: (itemsDropped, index) {
+                              debugPrint(
+                                  'Dropped items ${itemsDropped.map((e) => e.data.name).join(',')} into index $index');
+                            },
+                            dropPlaceholderTemplate:
+                                (context, index, item, itemsToBeDropped) {
+                              var itemsLength = itemsToBeDropped.length;
+                              var label = itemsLength > 1
+                                  ? '$itemsLength new items...'
+                                  : itemsLength > 0
+                                      ? itemsToBeDropped.first.data.name
+                                      : '';
+                              return SimpleListboxItem(
+                                key: Key('$index'),
+                                item: item,
+                                label: label,
+                              );
+                            },
                             disableMultiSelect: true,
                             enableDebug: true,
                           );

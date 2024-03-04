@@ -9,15 +9,17 @@ import 'package:selectable_draggable_listbox/src/models/list_item.dart';
 class Listbox<T> extends StatefulWidget {
   /// Builds a listbox that is a reorderable, (multi)selectable, listview of
   /// widgets defined by the itemTemplate.
-  Listbox({
+  const Listbox({
     super.key,
     required this.itemTemplate,
     this.dragTemplate,
+    this.dropPlaceholderTemplate,
     required this.items,
     this.shrinkWrap = false,
     this.disableMultiSelect = false,
     this.onReorder,
     this.onSelect,
+    this.onDrop,
     this.enableDebug = false,
   });
 
@@ -29,6 +31,11 @@ class Listbox<T> extends StatefulWidget {
   /// Set to null to disable dragging from this Listbox.
   final Widget Function(BuildContext context, int index, ListItem<T> item)?
       dragTemplate;
+
+  /// Builds the widget that should show as a placeholder when item(s) are being
+  /// dragged to this Listbox. Set to null to disable dragging to this list.
+  final Widget Function(BuildContext context, int index, ListItem<T> item,
+      Iterable<ListItem<T>> itemsToBeDropped)? dropPlaceholderTemplate;
 
   /// Items to bind to the Listbox.
   final List<ListItem<T>> items;
@@ -47,12 +54,14 @@ class Listbox<T> extends StatefulWidget {
 
   /// A callback used by the Listbox to report that one or more list items have
   /// been selected. Set to null to disable selections.
-  final void Function(List<ListItem<T>> itemsSelected)? onSelect;
+  final void Function(Iterable<ListItem<T>> itemsSelected)? onSelect;
+
+  /// A callback used by the Listbox to report that one or more list items have
+  /// been dropped into this list. Set to null to disable dragging to this list.
+  final void Function(Iterable<ListItem<T>> itemsDropped, int index)? onDrop;
 
   /// Whether to show debug info about this widget
   final bool enableDebug;
-
-  final controller = ScrollController(keepScrollOffset: true);
 
   @override
   State<Listbox<T>> createState() => _ListboxState<T>();
@@ -65,6 +74,9 @@ class _ListboxState<T> extends State<Listbox<T>> {
   late FocusNode _node;
   bool _focused = false;
   late FocusAttachment _nodeAttachment;
+  Iterable<ListItem<T>> _itemsToBeDropped = [];
+  bool _isDraggedOver = false;
+  int _dropIndex = -1;
 
   @override
   void initState() {
@@ -197,14 +209,32 @@ class _ListboxState<T> extends State<Listbox<T>> {
   @override
   Widget build(BuildContext context) {
     _nodeAttachment.reparent();
+    final adjustedItems = widget.items.toList();
     final colors = Theme.of(context).colorScheme;
+    final originalResultCount = adjustedItems.length;
+    if (_isDraggedOver && _dropIndex > -1 && _itemsToBeDropped.isNotEmpty) {
+      adjustedItems.insert(
+          _dropIndex, ListItem<T>.asPlaceholder(_itemsToBeDropped.first));
+    }
 
-    return Container(
+    Offset localOffset(Offset offset) {
+      var box = context.findRenderObject() as RenderBox;
+      var listPosition = box.localToGlobal(Offset.zero);
+      return offset - listPosition;
+    }
+
+    int getDropIndex(Offset offset, int listLength) {
+      return math.min(math.max(0, (offset.dy / 30).floor()), listLength);
+    }
+
+    var listboxBuilder = Container(
       decoration: BoxDecoration(
         border: Border.all(),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
-          BoxShadow(color: colors.surface),
+          BoxShadow(
+            color: colors.surface,
+          ),
         ],
       ),
       child: GestureDetector(
@@ -212,68 +242,110 @@ class _ListboxState<T> extends State<Listbox<T>> {
         onTapDown: (_) => _listClicked(),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Scrollbar(
-            controller: widget.controller,
-            child: Builder(
-              builder: (context) {
-                final selectedItems =
-                    widget.items.where((i) => i.isSelected).toList();
-                itemBuilder(BuildContext context, int idx) => widget
-                    .itemTemplate(context, idx, widget.items[idx], _onSelect);
-
-                Widget listView;
-                if (widget.onReorder == null) {
-                  listView = ListView.builder(
-                    controller: widget.controller,
-                    itemCount: widget.items.length,
-                    itemBuilder: itemBuilder,
-                    shrinkWrap: widget.shrinkWrap,
-                  );
+          child: Builder(
+            builder: (context) {
+              final selectedItems =
+                  adjustedItems.where((i) => i.isSelected).toList();
+              itemBuilder(BuildContext context, int idx) {
+                if (widget.dropPlaceholderTemplate != null &&
+                    adjustedItems[idx].isPlaceholder) {
+                  return widget.dropPlaceholderTemplate!(
+                      context, idx, adjustedItems[idx], _itemsToBeDropped);
                 } else {
-                  listView = ReorderableListView.builder(
-                    onReorder: (int oldIndex, int newIndex) {
-                      if (newIndex > oldIndex) {
-                        /// Reorderable listview incorrectly adds 1 to newindex
-                        /// when moving such that index increases. See
-                        /// https://github.com/flutter/flutter/issues/24786
-                        /// for more info.
-                        newIndex--;
-                      }
-                      widget.onReorder!(oldIndex, newIndex);
-                    },
-                    scrollController: widget.controller,
-                    itemCount: widget.items.length,
-                    itemBuilder: itemBuilder,
-                    shrinkWrap: widget.shrinkWrap,
-                  );
+                  return widget.itemTemplate(
+                      context, idx, adjustedItems[idx], _onSelect);
                 }
+              }
 
-                if (widget.dragTemplate == null) {
-                  return listView;
-                } else {
-                  dragItemBuilder(BuildContext context, int idx) =>
-                      widget.dragTemplate!(context, idx, selectedItems[idx]);
+              Widget listView;
+              if (widget.onReorder == null) {
+                listView = ListView.builder(
+                  itemCount: adjustedItems.length,
+                  itemBuilder: itemBuilder,
+                  shrinkWrap: widget.shrinkWrap,
+                );
+              } else {
+                listView = ReorderableListView.builder(
+                  onReorder: (int oldIndex, int newIndex) {
+                    if (newIndex > oldIndex) {
+                      /// Reorderable listview incorrectly adds 1 to newindex
+                      /// when moving such that index increases. See
+                      /// https://github.com/flutter/flutter/issues/24786
+                      /// for more info.
+                      newIndex--;
+                    }
+                    widget.onReorder!(oldIndex, newIndex);
+                  },
+                  itemCount: adjustedItems.length,
+                  itemBuilder: itemBuilder,
+                  shrinkWrap: widget.shrinkWrap,
+                );
+              }
 
-                  return Draggable<Iterable<T>>(
-                    data: selectedItems.map((i) => i.data).toList(),
-                    dragAnchorStrategy: pointerDragAnchorStrategy,
-                    feedback: SizedBox(
-                      width: 350,
-                      height: selectedItems.length * 50,
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: selectedItems.length,
-                        itemBuilder: dragItemBuilder,
-                      ),
+              if (widget.dragTemplate == null) {
+                return listView;
+              } else {
+                dragItemBuilder(BuildContext context, int idx) =>
+                    widget.dragTemplate!(context, idx, selectedItems[idx]);
+
+                return Draggable<Iterable<ListItem<T>>>(
+                  data: selectedItems,
+                  dragAnchorStrategy: pointerDragAnchorStrategy,
+                  feedback: SizedBox(
+                    width: 350,
+                    height: selectedItems.length * 50,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: selectedItems.length,
+                      itemBuilder: dragItemBuilder,
                     ),
-                    child: listView,
-                  );
-                }
-              },
-            ),
+                  ),
+                  child: listView,
+                );
+              }
+            },
           ),
         ),
       ),
     );
+
+    if (widget.onDrop == null || widget.dropPlaceholderTemplate == null) {
+      return listboxBuilder;
+    } else {
+      return DragTarget<Iterable<ListItem<T>>>(
+        builder: (context, candidateData, rejectedData) => listboxBuilder,
+        onWillAccept: (data) => data?.isNotEmpty == true,
+        onAcceptWithDetails: (details) {
+          var offset = localOffset(details.offset);
+          var dropIndex = getDropIndex(offset, originalResultCount);
+          debugPrint('Dropping items into ${widget.key} at index $_dropIndex');
+          widget.onDrop!(details.data, dropIndex);
+          setState(() {
+            _isDraggedOver = false;
+            _dropIndex = -1;
+          });
+        },
+        onMove: (details) {
+          var offset = localOffset(details.offset);
+          var index = getDropIndex(offset, originalResultCount);
+          if (index != _dropIndex) {
+            debugPrint(
+                'Ready to drop items into ${widget.key} at index $index');
+          }
+          setState(() {
+            _itemsToBeDropped = details.data.toList();
+            _isDraggedOver = true;
+            _dropIndex = index;
+          });
+        },
+        onLeave: (data) {
+          debugPrint('No longer ready to drop items.');
+          setState(() {
+            _isDraggedOver = false;
+            _dropIndex = -1;
+          });
+        },
+      );
+    }
   }
 }
