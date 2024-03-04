@@ -28,9 +28,9 @@ Place the results of `flutter --version` here:
 ```
 ```
 
-**Desktop (please complete the following information):**
+**Device (please complete the following information):**
  - OS: [e.g. iOS]
- - Version [e.g. 22]
+ - Version: [e.g. 22]
 
 **Additional context**
 Add any other context about the problem here.
