@@ -1,3 +1,7 @@
+## 0.0.3
+
+- Fixes some documentation and improves examples
+
 ## 0.0.2
 
 - Updates to LICENSE and fixes README images
