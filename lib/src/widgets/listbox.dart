@@ -22,6 +22,7 @@ class Listbox<T> extends StatefulWidget {
     this.onReorder,
     this.onSelect,
     this.onDrop,
+    this.dragDropTransform,
     this.enableDebug = false,
   });
 
@@ -35,7 +36,8 @@ class Listbox<T> extends StatefulWidget {
       dragTemplate;
 
   /// Builds the widget that should show as a placeholder when item(s) are being
-  /// dragged to this Listbox. Set to null to disable dragging to this list.
+  /// dragged to this Listbox. If used, must also provide [onDrop]. Set to null
+  /// to disable dragging to this list.
   final Widget Function(BuildContext context, int index, ListItem<T> item,
       Iterable<ListItem<T>> itemsToBeDropped)? dropPlaceholderTemplate;
 
@@ -59,8 +61,15 @@ class Listbox<T> extends StatefulWidget {
   final void Function(Iterable<ListItem<T>> itemsSelected)? onSelect;
 
   /// A callback used by the Listbox to report that one or more list items have
-  /// been dropped into this list. Set to null to disable dragging to this list.
+  /// been dropped into this list. If used, must also provide
+  /// [dropPlaceholderTemplate]. Set to null to disable dragging to this list.
   final void Function(Iterable<ListItem<T>> itemsDropped, int index)? onDrop;
+
+  /// Defines how to transform a different dragged type into the type to be
+  /// dropped into this list. Defaults to returning the exact same item. If
+  /// returning the same reference, remember that you might need to clone it in
+  /// [onDrop].
+  final T Function(dynamic input)? dragDropTransform;
 
   /// Whether to show debug info about this widget
   final bool enableDebug;
@@ -214,6 +223,12 @@ class _ListboxState<T> extends State<Listbox<T>> {
     final adjustedItems = widget.items.toList();
     final colors = Theme.of(context).colorScheme;
     final originalResultCount = adjustedItems.length;
+    final transformer =
+        widget.dragDropTransform ?? (dynamic input) => input as T;
+
+    listItemTransformer(ListItem<dynamic> input) =>
+        ListItem(transformer(input.data));
+
     if (_isDraggedOver && _dropIndex > -1 && _itemsToBeDropped.isNotEmpty) {
       adjustedItems.insert(
           _dropIndex, ListItem<T>.asPlaceholder(_itemsToBeDropped.first));
@@ -315,7 +330,7 @@ class _ListboxState<T> extends State<Listbox<T>> {
     if (widget.onDrop == null || widget.dropPlaceholderTemplate == null) {
       return listboxBuilder;
     } else {
-      return DragTarget<Iterable<ListItem<T>>>(
+      return DragTarget<Iterable<ListItem<dynamic>>>(
         builder: (context, candidateData, rejectedData) => listboxBuilder,
         onWillAcceptWithDetails: (details) => details.data.isNotEmpty == true,
         onAcceptWithDetails: (details) {
@@ -326,7 +341,8 @@ class _ListboxState<T> extends State<Listbox<T>> {
           for (var element in droppedItems) {
             element.isSelected = false;
           }
-          widget.onDrop!(droppedItems, dropIndex);
+          var transformedItems = droppedItems.map(listItemTransformer);
+          widget.onDrop!(transformedItems, dropIndex);
           setState(() {
             _isDraggedOver = false;
             _dropIndex = -1;
@@ -340,7 +356,7 @@ class _ListboxState<T> extends State<Listbox<T>> {
                 'Ready to drop items into ${widget.key} at index $index');
           }
           setState(() {
-            _itemsToBeDropped = details.data.toList();
+            _itemsToBeDropped = details.data.map(listItemTransformer).toList();
             _isDraggedOver = true;
             _dropIndex = index;
           });

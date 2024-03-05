@@ -24,15 +24,21 @@ class MyApp extends StatelessWidget {
 
 class GroceryItem {
   final String name;
-  DateTime? lastBought;
-
-  String get lastBoughtShortDtTm => lastBought == null
-      ? ''
-      : DateFormat('MM/dd/yyyy kk:mm').format(lastBought!);
 
   GroceryItem({
     required this.name,
-    this.lastBought,
+  });
+}
+
+class RecentGroceryItem extends GroceryItem {
+  DateTime lastBought;
+
+  String get lastBoughtShortDtTm =>
+      DateFormat('MM/dd/yyyy kk:mm').format(lastBought);
+
+  RecentGroceryItem({
+    required super.name,
+    required this.lastBought,
   });
 }
 
@@ -173,11 +179,11 @@ class RecentListWidget extends StatefulWidget {
 
 class _RecentListWidgetState extends State<RecentListWidget> {
   final _recentList = [
-    GroceryItem(
+    RecentGroceryItem(
       name: 'Apples',
       lastBought: DateTime(2024, 3, 3, 13, 22, 33),
     ),
-    GroceryItem(
+    RecentGroceryItem(
       name: 'Bread',
       lastBought: DateTime(2024, 3, 4, 10, 14, 12),
     )
@@ -190,9 +196,9 @@ class _RecentListWidgetState extends State<RecentListWidget> {
     /// indicating the date the item was dragged to this list
     Widget makeItemTemplate(
       int index,
-      ListItem<GroceryItem> item,
+      ListItem<RecentGroceryItem> item,
       String label,
-      void Function(ListItem<GroceryItem>)? onSelect,
+      void Function(ListItem<RecentGroceryItem>)? onSelect,
       bool isDragPlaceholder,
     ) {
       return TemplatedListboxItem(
@@ -217,7 +223,7 @@ class _RecentListWidgetState extends State<RecentListWidget> {
       );
     }
 
-    void onSelect(Iterable<ListItem<GroceryItem>> itemsSelected) {
+    void onSelect(Iterable<ListItem<RecentGroceryItem>> itemsSelected) {
       debugPrint(
           'Selected: ${itemsSelected.map((e) => e.data.name).join(',')}');
       setState(() {
@@ -227,18 +233,18 @@ class _RecentListWidgetState extends State<RecentListWidget> {
       });
     }
 
-    void onDrop(Iterable<ListItem<GroceryItem>> itemsDropped, int index) {
+    void onDrop(Iterable<ListItem<RecentGroceryItem>> itemsDropped, int index) {
       debugPrint(
           'Dropped items ${itemsDropped.map((e) => e.data.name).join(',')} into index $index');
 
-      // It is important to copy the items not just accept them
-      // (otherwise they'd have same reference and selected state would cross).
-      // Also in this example, we'll avoid adding duplicates.
+      // Avoid adding duplicates
       final existingNames = _recentList.map((i) => i.data.name);
+
+      // We can add these items to the list directly, because our transform made
+      // copies of the items. When not using dragDropTransform it's a good idea
+      // to clone the items here before inserting them into the new list.
       final itemsToInsert = itemsDropped
           .where((i) => !existingNames.contains(i.data.name))
-          .map((i) => ListItem(
-              GroceryItem(name: i.data.name, lastBought: DateTime.now())))
           .toList();
       _recentList.insertAll(index, itemsToInsert);
     }
@@ -263,6 +269,15 @@ class _RecentListWidgetState extends State<RecentListWidget> {
                     items: _recentList,
                     onSelect: onSelect,
                     onDrop: onDrop,
+                    dragDropTransform: (input) {
+                      if (input is GroceryItem || input is RecentGroceryItem) {
+                        return RecentGroceryItem(
+                            name: input.name, lastBought: DateTime.now());
+                      } else {
+                        throw Exception(
+                            'Cannot accept items of type ${input.runtimeType}');
+                      }
+                    },
                     itemTemplate: (context, index, item, onSelect) =>
                         makeItemTemplate(
                             index, item, item.data.name, onSelect, false),
