@@ -317,7 +317,7 @@ class _ListboxState<T> extends State<Listbox<T>> {
     } else {
       return DragTarget<Iterable<ListItem<T>>>(
         builder: (context, candidateData, rejectedData) => listboxBuilder,
-        onWillAccept: (data) => data?.isNotEmpty == true,
+        onWillAcceptWithDetails: (details) => details.data.isNotEmpty == true,
         onAcceptWithDetails: (details) {
           var offset = localOffset(details.offset);
           var dropIndex = getDropIndex(offset, originalResultCount);
