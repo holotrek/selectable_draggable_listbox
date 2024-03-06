@@ -98,7 +98,7 @@ class _GroceryListWidgetState extends State<GroceryListWidget> {
     /// Make a simple listbox item
     /// This demonstrates using the index to show a number prefix
     /// Slightly different for the "drag template" that follows your mouse pointer - removes the number prefix
-    Widget makeItemTemplate(
+    SimpleListboxItem<GroceryItem> makeItemTemplate(
       int index,
       ListItem<GroceryItem> item,
       void Function(ListItem<GroceryItem>)? onSelect,
@@ -191,10 +191,12 @@ class _RecentListWidgetState extends State<RecentListWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     /// Make a more complex listbox item
     /// This demonstrates using the childTemplate to show a row with a badge
     /// indicating the date the item was dragged to this list
-    Widget makeItemTemplate(
+    TemplatedListboxItem<RecentGroceryItem> makeItemTemplate(
       int index,
       ListItem<RecentGroceryItem> item,
       String label,
@@ -220,6 +222,14 @@ class _RecentListWidgetState extends State<RecentListWidget> {
           );
         },
         onSelect: onSelect,
+        customDecoration: isDragPlaceholder
+            ? BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(5),
+                ),
+              )
+            : null,
       );
     }
 

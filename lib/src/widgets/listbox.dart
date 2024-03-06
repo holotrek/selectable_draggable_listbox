@@ -2,13 +2,14 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:selectable_draggable_listbox/src/models/list_item.dart';
+import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
 
 /// Builds a listbox that is a reorderable, (multi)selectable, listview of
 /// widgets defined by the itemTemplate.
-class Listbox<T> extends StatefulWidget {
+class Listbox<T, TItem extends AbstractListboxItem<T>> extends StatefulWidget {
   /// Builds a listbox that is a reorderable, (multi)selectable, listview of
   /// widgets defined by the itemTemplate.
   const Listbox({
@@ -27,18 +28,18 @@ class Listbox<T> extends StatefulWidget {
   });
 
   /// Builds the widget that should show in the list for each item.
-  final Widget Function(BuildContext context, int index, ListItem<T> item,
+  final TItem Function(BuildContext context, int index, ListItem<T> item,
       void Function(ListItem<T> item)? onSelect) itemTemplate;
 
   /// Builds the widget that should show when dragging the item from the list.
   /// Set to null to disable dragging from this Listbox.
-  final Widget Function(BuildContext context, int index, ListItem<T> item)?
+  final TItem Function(BuildContext context, int index, ListItem<T> item)?
       dragTemplate;
 
   /// Builds the widget that should show as a placeholder when item(s) are being
   /// dragged to this Listbox. If used, must also provide [onDrop]. Set to null
   /// to disable dragging to this list.
-  final Widget Function(BuildContext context, int index, ListItem<T> item,
+  final TItem Function(BuildContext context, int index, ListItem<T> item,
       Iterable<ListItem<T>> itemsToBeDropped)? dropPlaceholderTemplate;
 
   /// Items to bind to the Listbox.
@@ -75,10 +76,11 @@ class Listbox<T> extends StatefulWidget {
   final bool enableDebug;
 
   @override
-  State<Listbox<T>> createState() => _ListboxState<T>();
+  State<Listbox<T, TItem>> createState() => _ListboxState<T, TItem>();
 }
 
-class _ListboxState<T> extends State<Listbox<T>> {
+class _ListboxState<T, TItem extends AbstractListboxItem<T>>
+    extends State<Listbox<T, TItem>> {
   int? _lastIndexSelected;
   bool _isCtrlOrCommandDown = false;
   bool _isShiftDown = false;
@@ -123,7 +125,7 @@ class _ListboxState<T> extends State<Listbox<T>> {
         _isShiftDown = !isKeyUp;
       });
       return KeyEventResult.handled;
-    } else if (Platform.isMacOS) {
+    } else if (kIsWeb || Platform.isMacOS) {
       if (event.logicalKey == LogicalKeyboardKey.metaLeft ||
           event.logicalKey == LogicalKeyboardKey.metaRight) {
         setState(() {
@@ -156,15 +158,28 @@ class _ListboxState<T> extends State<Listbox<T>> {
         LogicalKeyboardKey.shiftRight,
       }).isNotEmpty;
 
-      final isCtrlOrCommandDown = Platform.isMacOS
-          ? keysPressed.intersection({
-              LogicalKeyboardKey.metaLeft,
-              LogicalKeyboardKey.metaRight,
-            }).isNotEmpty
-          : keysPressed.intersection({
-              LogicalKeyboardKey.controlLeft,
-              LogicalKeyboardKey.controlRight,
-            }).isNotEmpty;
+      Set<LogicalKeyboardKey> ctrlOrCommandToCheck = {
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.metaRight,
+        LogicalKeyboardKey.controlLeft,
+        LogicalKeyboardKey.controlRight,
+      };
+      if (!kIsWeb) {
+        if (Platform.isMacOS) {
+          ctrlOrCommandToCheck = {
+            LogicalKeyboardKey.metaLeft,
+            LogicalKeyboardKey.metaRight,
+          };
+        } else {
+          ctrlOrCommandToCheck = {
+            LogicalKeyboardKey.controlLeft,
+            LogicalKeyboardKey.controlRight,
+          };
+        }
+      }
+
+      final isCtrlOrCommandDown =
+          keysPressed.intersection(ctrlOrCommandToCheck).isNotEmpty;
 
       debugPrint(
           '[selectable_draggable_listbox] Shift is currently ${isShiftDown ? 'down' : 'up'}.');
