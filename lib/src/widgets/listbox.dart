@@ -2,13 +2,14 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:selectable_draggable_listbox/src/models/list_item.dart';
+import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
 
 /// Builds a listbox that is a reorderable, (multi)selectable, listview of
 /// widgets defined by the itemTemplate.
-class Listbox<T> extends StatefulWidget {
+class Listbox<T, TItem extends AbstractListboxItem<T>> extends StatefulWidget {
   /// Builds a listbox that is a reorderable, (multi)selectable, listview of
   /// widgets defined by the itemTemplate.
   const Listbox({
@@ -22,22 +23,38 @@ class Listbox<T> extends StatefulWidget {
     this.onReorder,
     this.onSelect,
     this.onDrop,
+    this.dragDropTransform,
     this.enableDebug = false,
   });
 
   /// Builds the widget that should show in the list for each item.
-  final Widget Function(BuildContext context, int index, ListItem<T> item,
-      void Function(ListItem<T> item)? onSelect) itemTemplate;
+  final TItem Function(
+    BuildContext context,
+    ListboxEventManager events,
+    int index,
+    ListItem<T> item,
+    void Function(ListItem<T> item)? onSelect,
+  ) itemTemplate;
 
   /// Builds the widget that should show when dragging the item from the list.
   /// Set to null to disable dragging from this Listbox.
-  final Widget Function(BuildContext context, int index, ListItem<T> item)?
-      dragTemplate;
+  final TItem Function(
+    BuildContext context,
+    ListboxEventManager events,
+    int index,
+    ListItem<T> item,
+  )? dragTemplate;
 
   /// Builds the widget that should show as a placeholder when item(s) are being
-  /// dragged to this Listbox. Set to null to disable dragging to this list.
-  final Widget Function(BuildContext context, int index, ListItem<T> item,
-      Iterable<ListItem<T>> itemsToBeDropped)? dropPlaceholderTemplate;
+  /// dragged to this Listbox. If used, must also provide [onDrop]. Set to null
+  /// to disable dragging to this list.
+  final TItem Function(
+    BuildContext context,
+    ListboxEventManager events,
+    int index,
+    ListItem<T> item,
+    Iterable<ListItem<T>> itemsToBeDropped,
+  )? dropPlaceholderTemplate;
 
   /// Items to bind to the Listbox.
   final List<ListItem<T>> items;
@@ -59,17 +76,26 @@ class Listbox<T> extends StatefulWidget {
   final void Function(Iterable<ListItem<T>> itemsSelected)? onSelect;
 
   /// A callback used by the Listbox to report that one or more list items have
-  /// been dropped into this list. Set to null to disable dragging to this list.
+  /// been dropped into this list. If used, must also provide
+  /// [dropPlaceholderTemplate]. Set to null to disable dragging to this list.
   final void Function(Iterable<ListItem<T>> itemsDropped, int index)? onDrop;
+
+  /// Defines how to transform a different dragged type into the type to be
+  /// dropped into this list. Defaults to returning the exact same item. If
+  /// returning the same reference, remember that you might need to clone it in
+  /// [onDrop].
+  final T Function(dynamic input)? dragDropTransform;
 
   /// Whether to show debug info about this widget
   final bool enableDebug;
 
   @override
-  State<Listbox<T>> createState() => _ListboxState<T>();
+  State<Listbox<T, TItem>> createState() => _ListboxState<T, TItem>();
 }
 
-class _ListboxState<T> extends State<Listbox<T>> {
+class _ListboxState<T, TItem extends AbstractListboxItem<T>>
+    extends State<Listbox<T, TItem>> {
+  final _eventManager = ListboxEventManager();
   int? _lastIndexSelected;
   bool _isCtrlOrCommandDown = false;
   bool _isShiftDown = false;
@@ -93,6 +119,7 @@ class _ListboxState<T> extends State<Listbox<T>> {
     _node.removeListener(_handleFocusChange);
     // The attachment will automatically be detached in dispose().
     _node.dispose();
+    _eventManager.removeAll();
     super.dispose();
   }
 
@@ -114,7 +141,7 @@ class _ListboxState<T> extends State<Listbox<T>> {
         _isShiftDown = !isKeyUp;
       });
       return KeyEventResult.handled;
-    } else if (Platform.isMacOS) {
+    } else if (kIsWeb || Platform.isMacOS) {
       if (event.logicalKey == LogicalKeyboardKey.metaLeft ||
           event.logicalKey == LogicalKeyboardKey.metaRight) {
         setState(() {
@@ -147,15 +174,28 @@ class _ListboxState<T> extends State<Listbox<T>> {
         LogicalKeyboardKey.shiftRight,
       }).isNotEmpty;
 
-      final isCtrlOrCommandDown = Platform.isMacOS
-          ? keysPressed.intersection({
-              LogicalKeyboardKey.metaLeft,
-              LogicalKeyboardKey.metaRight,
-            }).isNotEmpty
-          : keysPressed.intersection({
-              LogicalKeyboardKey.controlLeft,
-              LogicalKeyboardKey.controlRight,
-            }).isNotEmpty;
+      Set<LogicalKeyboardKey> ctrlOrCommandToCheck = {
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.metaRight,
+        LogicalKeyboardKey.controlLeft,
+        LogicalKeyboardKey.controlRight,
+      };
+      if (!kIsWeb) {
+        if (Platform.isMacOS) {
+          ctrlOrCommandToCheck = {
+            LogicalKeyboardKey.metaLeft,
+            LogicalKeyboardKey.metaRight,
+          };
+        } else {
+          ctrlOrCommandToCheck = {
+            LogicalKeyboardKey.controlLeft,
+            LogicalKeyboardKey.controlRight,
+          };
+        }
+      }
+
+      final isCtrlOrCommandDown =
+          keysPressed.intersection(ctrlOrCommandToCheck).isNotEmpty;
 
       debugPrint(
           '[selectable_draggable_listbox] Shift is currently ${isShiftDown ? 'down' : 'up'}.');
@@ -214,6 +254,12 @@ class _ListboxState<T> extends State<Listbox<T>> {
     final adjustedItems = widget.items.toList();
     final colors = Theme.of(context).colorScheme;
     final originalResultCount = adjustedItems.length;
+    final transformer =
+        widget.dragDropTransform ?? (dynamic input) => input as T;
+
+    listItemTransformer(ListItem<dynamic> input) =>
+        ListItem(transformer(input.data));
+
     if (_isDraggedOver && _dropIndex > -1 && _itemsToBeDropped.isNotEmpty) {
       adjustedItems.insert(
           _dropIndex, ListItem<T>.asPlaceholder(_itemsToBeDropped.first));
@@ -251,11 +297,11 @@ class _ListboxState<T> extends State<Listbox<T>> {
               itemBuilder(BuildContext context, int idx) {
                 if (widget.dropPlaceholderTemplate != null &&
                     adjustedItems[idx].isPlaceholder) {
-                  return widget.dropPlaceholderTemplate!(
-                      context, idx, adjustedItems[idx], _itemsToBeDropped);
+                  return widget.dropPlaceholderTemplate!(context, _eventManager,
+                      idx, adjustedItems[idx], _itemsToBeDropped);
                 } else {
-                  return widget.itemTemplate(
-                      context, idx, adjustedItems[idx], _onSelect);
+                  return widget.itemTemplate(context, _eventManager, idx,
+                      adjustedItems[idx], _onSelect);
                 }
               }
 
@@ -288,7 +334,8 @@ class _ListboxState<T> extends State<Listbox<T>> {
                 return listView;
               } else {
                 dragItemBuilder(BuildContext context, int idx) =>
-                    widget.dragTemplate!(context, idx, selectedItems[idx]);
+                    widget.dragTemplate!(
+                        context, _eventManager, idx, selectedItems[idx]);
 
                 return Draggable<Iterable<ListItem<T>>>(
                   hitTestBehavior: HitTestBehavior.translucent,
@@ -303,6 +350,8 @@ class _ListboxState<T> extends State<Listbox<T>> {
                       itemBuilder: dragItemBuilder,
                     ),
                   ),
+                  onDragStarted: () => _eventManager.triggerListDragStart(),
+                  onDragEnd: (_) => _eventManager.triggerListDragEnd(),
                   child: listView,
                 );
               }
@@ -315,9 +364,9 @@ class _ListboxState<T> extends State<Listbox<T>> {
     if (widget.onDrop == null || widget.dropPlaceholderTemplate == null) {
       return listboxBuilder;
     } else {
-      return DragTarget<Iterable<ListItem<T>>>(
+      return DragTarget<Iterable<ListItem<dynamic>>>(
         builder: (context, candidateData, rejectedData) => listboxBuilder,
-        onWillAccept: (data) => data?.isNotEmpty == true,
+        onWillAcceptWithDetails: (details) => details.data.isNotEmpty == true,
         onAcceptWithDetails: (details) {
           var offset = localOffset(details.offset);
           var dropIndex = getDropIndex(offset, originalResultCount);
@@ -326,7 +375,8 @@ class _ListboxState<T> extends State<Listbox<T>> {
           for (var element in droppedItems) {
             element.isSelected = false;
           }
-          widget.onDrop!(droppedItems, dropIndex);
+          var transformedItems = droppedItems.map(listItemTransformer);
+          widget.onDrop!(transformedItems, dropIndex);
           setState(() {
             _isDraggedOver = false;
             _dropIndex = -1;
@@ -340,7 +390,7 @@ class _ListboxState<T> extends State<Listbox<T>> {
                 'Ready to drop items into ${widget.key} at index $index');
           }
           setState(() {
-            _itemsToBeDropped = details.data.toList();
+            _itemsToBeDropped = details.data.map(listItemTransformer).toList();
             _isDraggedOver = true;
             _dropIndex = index;
           });

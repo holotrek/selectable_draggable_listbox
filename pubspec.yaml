@@ -1,6 +1,6 @@
 name: selectable_draggable_listbox
 description: "Listbox with multiselect, drag & drop between lists, and reorder built in."
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/holotrek/selectable_draggable_listbox
 
 environment:

@@ -7,6 +7,7 @@ class TemplatedListboxItem<T> extends AbstractListboxItem<T> {
     super.key,
     required super.item,
     required super.childTemplate,
+    super.eventManager,
     super.onSelect,
     super.isDragging,
     super.customDecoration,
