@@ -51,46 +51,6 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _TestState extends State<MyHomePage> {
-  @override
-  Widget build(BuildContext context) {
-// Create your list and transform it to track selected items (list can be complex objects instead):
-    final myList = ['Apples', 'Cheese', 'Bread', 'Milk'].forListbox().toList();
-
-// Create the listbox widget
-    return Listbox(
-      items: myList,
-      itemTemplate: (context, eventManager, index, item, onSelect) {
-        // Define the template used for each listitem
-        return SimpleListboxItem(
-          key: Key('$index'), // Key is required for reordering
-          item: item,
-          label: item.data,
-          eventManager: eventManager,
-          onSelect: onSelect,
-        );
-      },
-      onSelect: (itemsSelected) {
-        // React to items selected
-        // Note: (value of isSelected is not set automatically by Listbox,
-        //  due to not knowing how your state is handled)
-        setState(() {
-          for (var item in myList) {
-            item.isSelected = itemsSelected.contains(item);
-          }
-        });
-      },
-      onReorder: (oldIndex, newIndex) {
-        // React to item reordered
-        setState(() {
-          // Note: this is an extension provided by the package
-          myList.move(oldIndex, newIndex);
-        });
-      },
-    );
-  }
-}
-
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
