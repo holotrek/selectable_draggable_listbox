@@ -31,23 +31,58 @@ abstract class AbstractListboxItem<T> extends StatefulWidget {
 }
 
 class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
+  bool _isMouseUp = false;
   bool _isMouseDown = false;
+  bool _handledByMouseDown = false;
+
+  void _handleTapOrDragDown() {
+    // Only select item on down if it is not already selected, so that if you
+    // click down to drag on a previously selected item, it won't unselect it.
+    // Also, since Tap and Drag down could both be fired, avoid doing it twice,
+    // so check if _isMouseDown is already set.
+    debugPrint('_isMouseDown: ${_isMouseDown.toString()}');
+    debugPrint('Selected: ${widget.item.isSelected.toString()}');
+    if (!_isMouseDown && !widget.item.isSelected) {
+      widget.onSelect!(widget.item);
+      setState(() => _handledByMouseDown = true);
+    }
+    setState(() {
+      _isMouseUp = false;
+      _isMouseDown = true;
+    });
+  }
+
+  void _handleTapUpOrDragStop() {
+    // If the mouse up is done on an item already selected (and thus down
+    // ignored it), then unselect it
+    if (!_isMouseUp && widget.item.isSelected && !_handledByMouseDown) {
+      widget.onSelect!(widget.item);
+    }
+    setState(() {
+      _isMouseUp = true;
+      _isMouseDown = false;
+      _handledByMouseDown = false;
+    });
+  }
 
   void _onTapDown(TapDownDetails details) {
     debugPrint('Mouse down');
-    if (widget.item.isSelected) {
-      setState(() => _isMouseDown = true);
-    } else {
-      widget.onSelect!(widget.item);
-    }
+    _handleTapOrDragDown();
+  }
+
+  void _onPanDown(DragDownDetails details) {
+    debugPrint('Pan down');
+    _handleTapOrDragDown();
   }
 
   void _onTapUp(TapUpDetails details) {
     debugPrint('Mouse up');
-    if (_isMouseDown) {
-      widget.onSelect!(widget.item);
-    }
-    setState(() => _isMouseDown = false);
+    _handleTapUpOrDragStop();
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    debugPrint('Pan end');
+    _handleTapUpOrDragStop();
   }
 
   @override
@@ -55,15 +90,10 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      behavior: HitTestBehavior.translucent,
       onTapDown: widget.onSelect == null ? null : _onTapDown,
       onTapUp: widget.onSelect == null ? null : _onTapUp,
-      // onHorizontalDragStart: (_) => debugPrint('Drag Start'),
-      // onVerticalDragStart: (_) => debugPrint('Drag Start'),
-      // onHorizontalDragDown: (_) => debugPrint('Drag Down'),
-      // onVerticalDragDown: (_) => debugPrint('Drag Down'),
-      // onHorizontalDragUpdate: (_) => debugPrint('Dragging'),
-      // onVerticalDragUpdate: (_) => debugPrint('Dragging'),
+      onPanDown: widget.onSelect == null ? null : _onPanDown,
+      onPanEnd: widget.onSelect == null ? null : _onPanEnd,
       child: Container(
         decoration: widget.customDecoration ??
             BoxDecoration(

@@ -284,8 +284,9 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
                   return widget.dropPlaceholderTemplate!(
                       context, idx, adjustedItems[idx], _itemsToBeDropped);
                 } else {
-                  return widget.itemTemplate(
+                  final regularItemTemplate = widget.itemTemplate(
                       context, idx, adjustedItems[idx], _onSelect);
+                  return regularItemTemplate;
                 }
               }
 
@@ -334,6 +335,7 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
                     ),
                   ),
                   child: listView,
+                  onDragEnd: (_) => setState(() {}),
                 );
               }
             },
