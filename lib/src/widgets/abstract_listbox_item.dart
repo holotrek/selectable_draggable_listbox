@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:selectable_draggable_listbox/src/models/list_item.dart';
+import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
+import 'package:selectable_draggable_listbox/src/models/listbox_listener.dart';
 
 abstract class AbstractListboxItem<T> extends StatefulWidget {
   const AbstractListboxItem({
     super.key,
     required this.item,
     required this.childTemplate,
+    this.eventManager,
     this.onSelect,
     this.isDragging = false,
     this.customDecoration,
@@ -13,6 +15,9 @@ abstract class AbstractListboxItem<T> extends StatefulWidget {
 
   /// The data item bound to this Lisbox item
   final ListItem<T> item;
+
+  /// A tracker of listbox events that allows this widget to listen to them
+  final ListboxEventManager? eventManager;
 
   /// Builds the widget to display for this Listbox item
   final Widget Function(BuildContext context, ListItem<T> item) childTemplate;
@@ -30,18 +35,21 @@ abstract class AbstractListboxItem<T> extends StatefulWidget {
   State<AbstractListboxItem<T>> createState() => _AbstractListboxItemState<T>();
 }
 
-class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
+class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>>
+    with ListboxListener {
   bool _isMouseUp = false;
   bool _isMouseDown = false;
   bool _handledByMouseDown = false;
 
   void _handleTapOrDragDown() {
+    if (widget.onSelect == null) {
+      return;
+    }
+
     // Only select item on down if it is not already selected, so that if you
     // click down to drag on a previously selected item, it won't unselect it.
     // Also, since Tap and Drag down could both be fired, avoid doing it twice,
     // so check if _isMouseDown is already set.
-    debugPrint('_isMouseDown: ${_isMouseDown.toString()}');
-    debugPrint('Selected: ${widget.item.isSelected.toString()}');
     if (!_isMouseDown && !widget.item.isSelected) {
       widget.onSelect!(widget.item);
       setState(() => _handledByMouseDown = true);
@@ -53,6 +61,10 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
   }
 
   void _handleTapUpOrDragStop() {
+    if (widget.onSelect == null) {
+      return;
+    }
+
     // If the mouse up is done on an item already selected (and thus down
     // ignored it), then unselect it
     if (!_isMouseUp && widget.item.isSelected && !_handledByMouseDown) {
@@ -66,23 +78,45 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>> {
   }
 
   void _onTapDown(TapDownDetails details) {
-    debugPrint('Mouse down');
     _handleTapOrDragDown();
   }
 
   void _onPanDown(DragDownDetails details) {
-    debugPrint('Pan down');
     _handleTapOrDragDown();
   }
 
   void _onTapUp(TapUpDetails details) {
-    debugPrint('Mouse up');
     _handleTapUpOrDragStop();
   }
 
   void _onPanEnd(DragEndDetails details) {
-    debugPrint('Pan end');
-    _handleTapUpOrDragStop();
+    setState(() {
+      _isMouseUp = true;
+      _isMouseDown = false;
+      _handledByMouseDown = false;
+    });
+  }
+
+  @override
+  void onListDragEnd() {
+    super.onListDragEnd();
+    setState(() {
+      _isMouseUp = true;
+      _isMouseDown = false;
+      _handledByMouseDown = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.eventManager?.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    widget.eventManager?.removeListener(this);
+    super.dispose();
   }
 
   @override

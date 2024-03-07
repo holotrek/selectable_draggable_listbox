@@ -6,6 +6,37 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
+import 'package:selectable_draggable_listbox/src/models/listbox_listener.dart';
+
+class ListboxEventManager {
+  final List<ListboxListener> _listeners = [];
+
+  void addListener(ListboxListener listener) {
+    if (!_listeners.contains(listener)) {
+      _listeners.add(listener);
+    }
+  }
+
+  void removeListener(ListboxListener listener) {
+    _listeners.remove(listener);
+  }
+
+  void removeAll() {
+    _listeners.clear();
+  }
+
+  void triggerListDragStart() {
+    for (var l in _listeners) {
+      l.onListDragStart();
+    }
+  }
+
+  void triggerListDragEnd() {
+    for (var l in _listeners) {
+      l.onListDragEnd();
+    }
+  }
+}
 
 /// Builds a listbox that is a reorderable, (multi)selectable, listview of
 /// widgets defined by the itemTemplate.
@@ -28,19 +59,33 @@ class Listbox<T, TItem extends AbstractListboxItem<T>> extends StatefulWidget {
   });
 
   /// Builds the widget that should show in the list for each item.
-  final TItem Function(BuildContext context, int index, ListItem<T> item,
-      void Function(ListItem<T> item)? onSelect) itemTemplate;
+  final TItem Function(
+    BuildContext context,
+    ListboxEventManager events,
+    int index,
+    ListItem<T> item,
+    void Function(ListItem<T> item)? onSelect,
+  ) itemTemplate;
 
   /// Builds the widget that should show when dragging the item from the list.
   /// Set to null to disable dragging from this Listbox.
-  final TItem Function(BuildContext context, int index, ListItem<T> item)?
-      dragTemplate;
+  final TItem Function(
+    BuildContext context,
+    ListboxEventManager events,
+    int index,
+    ListItem<T> item,
+  )? dragTemplate;
 
   /// Builds the widget that should show as a placeholder when item(s) are being
   /// dragged to this Listbox. If used, must also provide [onDrop]. Set to null
   /// to disable dragging to this list.
-  final TItem Function(BuildContext context, int index, ListItem<T> item,
-      Iterable<ListItem<T>> itemsToBeDropped)? dropPlaceholderTemplate;
+  final TItem Function(
+    BuildContext context,
+    ListboxEventManager events,
+    int index,
+    ListItem<T> item,
+    Iterable<ListItem<T>> itemsToBeDropped,
+  )? dropPlaceholderTemplate;
 
   /// Items to bind to the Listbox.
   final List<ListItem<T>> items;
@@ -81,6 +126,7 @@ class Listbox<T, TItem extends AbstractListboxItem<T>> extends StatefulWidget {
 
 class _ListboxState<T, TItem extends AbstractListboxItem<T>>
     extends State<Listbox<T, TItem>> {
+  final _eventManager = ListboxEventManager();
   int? _lastIndexSelected;
   bool _isCtrlOrCommandDown = false;
   bool _isShiftDown = false;
@@ -104,6 +150,7 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
     _node.removeListener(_handleFocusChange);
     // The attachment will automatically be detached in dispose().
     _node.dispose();
+    _eventManager.removeAll();
     super.dispose();
   }
 
@@ -281,12 +328,11 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
               itemBuilder(BuildContext context, int idx) {
                 if (widget.dropPlaceholderTemplate != null &&
                     adjustedItems[idx].isPlaceholder) {
-                  return widget.dropPlaceholderTemplate!(
-                      context, idx, adjustedItems[idx], _itemsToBeDropped);
+                  return widget.dropPlaceholderTemplate!(context, _eventManager,
+                      idx, adjustedItems[idx], _itemsToBeDropped);
                 } else {
-                  final regularItemTemplate = widget.itemTemplate(
-                      context, idx, adjustedItems[idx], _onSelect);
-                  return regularItemTemplate;
+                  return widget.itemTemplate(context, _eventManager, idx,
+                      adjustedItems[idx], _onSelect);
                 }
               }
 
@@ -319,7 +365,8 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
                 return listView;
               } else {
                 dragItemBuilder(BuildContext context, int idx) =>
-                    widget.dragTemplate!(context, idx, selectedItems[idx]);
+                    widget.dragTemplate!(
+                        context, _eventManager, idx, selectedItems[idx]);
 
                 return Draggable<Iterable<ListItem<T>>>(
                   hitTestBehavior: HitTestBehavior.translucent,
@@ -334,8 +381,9 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
                       itemBuilder: dragItemBuilder,
                     ),
                   ),
+                  onDragStarted: () => _eventManager.triggerListDragStart(),
+                  onDragEnd: (_) => _eventManager.triggerListDragEnd(),
                   child: listView,
-                  onDragEnd: (_) => setState(() {}),
                 );
               }
             },

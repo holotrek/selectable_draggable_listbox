@@ -8,6 +8,7 @@ class SimpleListboxItem<T> extends AbstractListboxItem<T> {
     super.key,
     required super.item,
     required this.label,
+    super.eventManager,
     super.onSelect,
     super.isDragging,
     super.customDecoration,

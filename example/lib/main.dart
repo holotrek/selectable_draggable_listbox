@@ -51,6 +51,46 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+class _TestState extends State<MyHomePage> {
+  @override
+  Widget build(BuildContext context) {
+// Create your list and transform it to track selected items (list can be complex objects instead):
+    final myList = ['Apples', 'Cheese', 'Bread', 'Milk'].forListbox().toList();
+
+// Create the listbox widget
+    return Listbox(
+      items: myList,
+      itemTemplate: (context, eventManager, index, item, onSelect) {
+        // Define the template used for each listitem
+        return SimpleListboxItem(
+          key: Key('$index'), // Key is required for reordering
+          item: item,
+          label: item.data,
+          eventManager: eventManager,
+          onSelect: onSelect,
+        );
+      },
+      onSelect: (itemsSelected) {
+        // React to items selected
+        // Note: (value of isSelected is not set automatically by Listbox,
+        //  due to not knowing how your state is handled)
+        setState(() {
+          for (var item in myList) {
+            item.isSelected = itemsSelected.contains(item);
+          }
+        });
+      },
+      onReorder: (oldIndex, newIndex) {
+        // React to item reordered
+        setState(() {
+          // Note: this is an extension provided by the package
+          myList.move(oldIndex, newIndex);
+        });
+      },
+    );
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
@@ -100,12 +140,14 @@ class _GroceryListWidgetState extends State<GroceryListWidget> {
     /// Slightly different for the "drag template" that follows your mouse pointer - removes the number prefix
     SimpleListboxItem<GroceryItem> makeItemTemplate(
       int index,
+      ListboxEventManager eventManager,
       ListItem<GroceryItem> item,
       void Function(ListItem<GroceryItem>)? onSelect,
       bool isDragging,
     ) {
       return SimpleListboxItem(
         key: Key('$index'),
+        eventManager: eventManager,
         item: item,
         label: isDragging ? item.data.name : '${index + 1}. ${item.data.name}',
         onSelect: onSelect,
@@ -151,10 +193,12 @@ class _GroceryListWidgetState extends State<GroceryListWidget> {
                     items: _groceryList,
                     onSelect: onSelect,
                     onReorder: onReorder,
-                    itemTemplate: (context, index, item, onSelect) =>
-                        makeItemTemplate(index, item, onSelect, false),
-                    dragTemplate: (context, index, item) =>
-                        makeItemTemplate(index, item, null, true),
+                    itemTemplate:
+                        (context, eventManager, index, item, onSelect) =>
+                            makeItemTemplate(
+                                index, eventManager, item, onSelect, false),
+                    dragTemplate: (context, eventManager, index, item) =>
+                        makeItemTemplate(index, eventManager, item, null, true),
                     // Show info in console about how the list is being interacted with:
                     enableDebug: true,
                   );
@@ -198,6 +242,7 @@ class _RecentListWidgetState extends State<RecentListWidget> {
     /// indicating the date the item was dragged to this list
     TemplatedListboxItem<RecentGroceryItem> makeItemTemplate(
       int index,
+      ListboxEventManager eventManager,
       ListItem<RecentGroceryItem> item,
       String label,
       void Function(ListItem<RecentGroceryItem>)? onSelect,
@@ -221,6 +266,7 @@ class _RecentListWidgetState extends State<RecentListWidget> {
             ),
           );
         },
+        eventManager: eventManager,
         onSelect: onSelect,
         customDecoration: isDragPlaceholder
             ? BoxDecoration(
@@ -288,11 +334,12 @@ class _RecentListWidgetState extends State<RecentListWidget> {
                             'Cannot accept items of type ${input.runtimeType}');
                       }
                     },
-                    itemTemplate: (context, index, item, onSelect) =>
-                        makeItemTemplate(
-                            index, item, item.data.name, onSelect, false),
+                    itemTemplate:
+                        (context, eventManager, index, item, onSelect) =>
+                            makeItemTemplate(index, eventManager, item,
+                                item.data.name, onSelect, false),
                     dropPlaceholderTemplate:
-                        (context, index, item, itemsToBeDropped) {
+                        (context, eventManager, index, item, itemsToBeDropped) {
                       var itemsLength = itemsToBeDropped.length;
 
                       // Here we're going to adjust the label that shows in the new list's placeholder,
@@ -302,7 +349,8 @@ class _RecentListWidgetState extends State<RecentListWidget> {
                           : itemsLength > 0
                               ? itemsToBeDropped.first.data.name
                               : '';
-                      return makeItemTemplate(index, item, label, null, true);
+                      return makeItemTemplate(
+                          index, eventManager, item, label, null, true);
                     },
                     // Can just turn off multiselect if not needed:
                     disableMultiSelect: true,

@@ -48,12 +48,13 @@ final myList = ['Apples','Cheese','Bread','Milk'].forListbox().toList();
 // Create the listbox widget
 return Listbox(
   items: myList,
-  itemTemplate: (context, index, item, onSelect) {
+  itemTemplate: (context, eventManager, index, item, onSelect) {
     // Define the template used for each listitem
     return SimpleListboxItem(
       key: Key('$index'), // Key is required for reordering
       item: item,
       label: item.data,
+      eventManager: eventManager,
       onSelect: onSelect,
     );
   },
