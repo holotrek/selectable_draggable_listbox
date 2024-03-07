@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
-import 'package:selectable_draggable_listbox/src/models/listbox_listener.dart';
 
 abstract class AbstractListboxItem<T> extends StatefulWidget {
   const AbstractListboxItem({

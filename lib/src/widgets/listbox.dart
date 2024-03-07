@@ -6,37 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
-import 'package:selectable_draggable_listbox/src/models/listbox_listener.dart';
-
-class ListboxEventManager {
-  final List<ListboxListener> _listeners = [];
-
-  void addListener(ListboxListener listener) {
-    if (!_listeners.contains(listener)) {
-      _listeners.add(listener);
-    }
-  }
-
-  void removeListener(ListboxListener listener) {
-    _listeners.remove(listener);
-  }
-
-  void removeAll() {
-    _listeners.clear();
-  }
-
-  void triggerListDragStart() {
-    for (var l in _listeners) {
-      l.onListDragStart();
-    }
-  }
-
-  void triggerListDragEnd() {
-    for (var l in _listeners) {
-      l.onListDragEnd();
-    }
-  }
-}
 
 /// Builds a listbox that is a reorderable, (multi)selectable, listview of
 /// widgets defined by the itemTemplate.
