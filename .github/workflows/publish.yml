@@ -1,3 +1,9 @@
+name: selectable_draggable_listbox-publish
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   release:
     branches:
