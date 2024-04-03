@@ -24,6 +24,7 @@ class Listbox<T, TItem extends AbstractListboxItem<T>> extends StatefulWidget {
     this.onSelect,
     this.onDrop,
     this.dragDropTransform,
+    this.scrollController,
     this.enableDebug = false,
   });
 
@@ -85,6 +86,9 @@ class Listbox<T, TItem extends AbstractListboxItem<T>> extends StatefulWidget {
   /// returning the same reference, remember that you might need to clone it in
   /// [onDrop].
   final T Function(dynamic input)? dragDropTransform;
+
+  /// Overrides the ScrollController of the internal ListView
+  final ScrollController? scrollController;
 
   /// Whether to show debug info about this widget
   final bool enableDebug;
@@ -256,6 +260,8 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
     final originalResultCount = adjustedItems.length;
     final transformer =
         widget.dragDropTransform ?? (dynamic input) => input as T;
+    final scrollController =
+        widget.scrollController ?? ScrollController(keepScrollOffset: true);
 
     listItemTransformer(ListItem<dynamic> input) =>
         ListItem(transformer(input.data));
@@ -308,12 +314,14 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
               Widget listView;
               if (widget.onReorder == null) {
                 listView = ListView.builder(
+                  controller: scrollController,
                   itemCount: adjustedItems.length,
                   itemBuilder: itemBuilder,
                   shrinkWrap: widget.shrinkWrap,
                 );
               } else {
                 listView = ReorderableListView.builder(
+                  scrollController: scrollController,
                   onReorder: (int oldIndex, int newIndex) {
                     if (newIndex > oldIndex) {
                       // Reorderable listview incorrectly adds 1 to newindex
