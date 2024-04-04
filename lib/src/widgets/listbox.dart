@@ -137,8 +137,11 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
 
   KeyEventResult _handleKeyPress(FocusNode node, KeyEvent event) {
     bool isKeyUp = event is KeyUpEvent;
-    debugPrint(
-        '[selectable_draggable_listbox] Focus node ${node.debugLabel} got key ${isKeyUp ? 'up' : 'down'} event: ${event.logicalKey}');
+    if (widget.enableDebug) {
+      debugPrint(
+          '[selectable_draggable_listbox] Focus node ${node.debugLabel} got key ${isKeyUp ? 'up' : 'down'} event: ${event.logicalKey}');
+    }
+
     if (event.logicalKey == LogicalKeyboardKey.shiftLeft ||
         event.logicalKey == LogicalKeyboardKey.shiftRight) {
       setState(() {
@@ -167,8 +170,10 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
 
   void _listClicked() {
     if (!_focused) {
-      debugPrint(
-          '[selectable_draggable_listbox] Listbox (key:${widget.key}) requesting focus.');
+      if (widget.enableDebug) {
+        debugPrint(
+            '[selectable_draggable_listbox] Listbox (key:${widget.key}) requesting focus.');
+      }
 
       _node.requestFocus();
       final keysPressed = ServicesBinding.instance.keyboard.logicalKeysPressed;
@@ -201,10 +206,13 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
       final isCtrlOrCommandDown =
           keysPressed.intersection(ctrlOrCommandToCheck).isNotEmpty;
 
-      debugPrint(
-          '[selectable_draggable_listbox] Shift is currently ${isShiftDown ? 'down' : 'up'}.');
-      debugPrint(
-          '[selectable_draggable_listbox] Ctrl/Cmd is currently ${isCtrlOrCommandDown ? 'down' : 'up'}.');
+      if (widget.enableDebug) {
+        debugPrint(
+            '[selectable_draggable_listbox] Shift is currently ${isShiftDown ? 'down' : 'up'}.');
+        debugPrint(
+            '[selectable_draggable_listbox] Ctrl/Cmd is currently ${isCtrlOrCommandDown ? 'down' : 'up'}.');
+      }
+
       setState(() {
         _isShiftDown = isShiftDown;
         _isCtrlOrCommandDown = isCtrlOrCommandDown;
