@@ -1,3 +1,8 @@
+## 0.0.5
+
+- Fixes issue where debug messages are printed even if enableDebug is false
+- Allows for a ScrollController to be passed in to allow for manipulating the scrollbar programmatically
+
 ## 0.0.4
 
 - Fixes issue #1 - quickly dragging another unselected item dragged old one instead
