@@ -1,4 +1,5 @@
-[![Pub](https://img.shields.io/pub/v/selectable_draggable_listbox)](https://pub.dev/packages/selectable_draggable_listbox)
+[![Pub][pub_badge]][pub_link]
+[![License: MIT][license_badge]][license_link]
 
 # selectable_draggable_listbox
 
@@ -87,6 +88,12 @@ For more info on additional features like Drag & Drop and Customizable Templates
 
 ## Support
 
-You can support me by buying me a coffee <a href="https://www.buymeacoffee.com/honeydoodat"><img src="https://github.com/holotrek/selectable_draggable_listbox/blob/main/doc/images/bmc-button.png?raw=true" alt="Buy me a coffee" width="100" /></a>
+You can support me by buying me a coffee <a href="https://www.buymeacoffee.com/honeydoodat"><img src="https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png" alt="Buy me a coffee" width="100" /></a>
 
 And also don't forget to star this package on GitHub <a href="https://github.com/holotrek/selectable_draggable_listbox"><img src="https://img.shields.io/github/stars/holotrek/selectable_draggable_listbox?logo=github&style=flat-square"></a>
+
+[pub_badge]: https://img.shields.io/pub/v/media_key_detector
+[pub_link]: https://pub.dev/packages/media_key_detector
+[coverage_badge]: coverage_badge.svg
+[license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license_link]: https://opensource.org/licenses/MIT
