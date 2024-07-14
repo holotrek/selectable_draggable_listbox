@@ -1,3 +1,7 @@
+## 0.0.6
+
+- TBD
+
 ## 0.0.5
 
 - Fixes issue where debug messages are printed even if enableDebug is false
