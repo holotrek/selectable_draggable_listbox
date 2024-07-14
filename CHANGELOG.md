@@ -1,6 +1,8 @@
 ## 0.0.6
 
-- TBD
+- Fies issue #4 - quickly dragging initial selected item was not triggering dragging
+- Fixes more issues where debug messages are printed even if enableDebug is false
+- Adds more debug messages to event listener
 
 ## 0.0.5
 
