@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:selectable_draggable_listbox/selectable_draggable_listbox.dart';
 
 /// Manages the listeners that the Listbox will publish events to
@@ -18,13 +19,21 @@ class ListboxEventManager {
     _listeners.clear();
   }
 
-  void triggerListDragStart() {
+  void triggerListDragStart({bool enableDebug = true}) {
+    if (enableDebug) {
+      debugPrint('[selectable_draggable_listbox] List drag started');
+    }
+
     for (var l in _listeners) {
       l.onListDragStart();
     }
   }
 
-  void triggerListDragEnd() {
+  void triggerListDragEnd({bool enableDebug = true}) {
+    if (enableDebug) {
+      debugPrint('[selectable_draggable_listbox] List drag ended');
+    }
+
     for (var l in _listeners) {
       l.onListDragEnd();
     }
