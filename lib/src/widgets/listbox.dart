@@ -366,8 +366,10 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
                       itemBuilder: dragItemBuilder,
                     ),
                   ),
-                  onDragStarted: () => _eventManager.triggerListDragStart(),
-                  onDragEnd: (_) => _eventManager.triggerListDragEnd(),
+                  onDragStarted: () => _eventManager.triggerListDragStart(
+                      enableDebug: widget.enableDebug),
+                  onDragEnd: (_) => _eventManager.triggerListDragEnd(
+                      enableDebug: widget.enableDebug),
                   child: listView,
                 );
               }
@@ -386,7 +388,10 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
         onAcceptWithDetails: (details) {
           var offset = localOffset(details.offset);
           var dropIndex = getDropIndex(offset, originalResultCount);
-          debugPrint('Dropping items into ${widget.key} at index $_dropIndex');
+          if (widget.enableDebug) {
+            debugPrint(
+                '[selectable_draggable_listbox] Dropping items into ${widget.key} at index $_dropIndex');
+          }
           var droppedItems = details.data.toList();
           for (var element in droppedItems) {
             element.isSelected = false;
@@ -401,7 +406,7 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
         onMove: (details) {
           var offset = localOffset(details.offset);
           var index = getDropIndex(offset, originalResultCount);
-          if (index != _dropIndex) {
+          if (index != _dropIndex && widget.enableDebug) {
             debugPrint(
                 'Ready to drop items into ${widget.key} at index $index');
           }
@@ -412,7 +417,9 @@ class _ListboxState<T, TItem extends AbstractListboxItem<T>>
           });
         },
         onLeave: (data) {
-          debugPrint('No longer ready to drop items.');
+          if (widget.enableDebug) {
+            debugPrint('No longer ready to drop items.');
+          }
           setState(() {
             _isDraggedOver = false;
             _dropIndex = -1;
