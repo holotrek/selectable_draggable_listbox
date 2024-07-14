@@ -40,7 +40,7 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>>
   bool _isMouseDown = false;
   bool _handledByMouseDown = false;
 
-  void _handleTapOrDragDown() {
+  void _handleTapDownOrDragStart() {
     if (widget.onSelect == null) {
       return;
     }
@@ -76,24 +76,12 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>>
     });
   }
 
-  void _onTapDown(TapDownDetails details) {
-    _handleTapOrDragDown();
+  void _onPointerDown(PointerDownEvent details) {
+    _handleTapDownOrDragStart();
   }
 
-  void _onPanDown(DragDownDetails details) {
-    _handleTapOrDragDown();
-  }
-
-  void _onTapUp(TapUpDetails details) {
+  void _onPointerUp(PointerUpEvent details) {
     _handleTapUpOrDragStop();
-  }
-
-  void _onPanEnd(DragEndDetails details) {
-    setState(() {
-      _isMouseUp = true;
-      _isMouseDown = false;
-      _handledByMouseDown = false;
-    });
   }
 
   @override
@@ -122,11 +110,9 @@ class _AbstractListboxItemState<T> extends State<AbstractListboxItem<T>>
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTapDown: widget.onSelect == null ? null : _onTapDown,
-      onTapUp: widget.onSelect == null ? null : _onTapUp,
-      onPanDown: widget.onSelect == null ? null : _onPanDown,
-      onPanEnd: widget.onSelect == null ? null : _onPanEnd,
+    return Listener(
+      onPointerDown: widget.onSelect == null ? null : _onPointerDown,
+      onPointerUp: widget.onSelect == null ? null : _onPointerUp,
       child: Container(
         decoration: widget.customDecoration ??
             BoxDecoration(
